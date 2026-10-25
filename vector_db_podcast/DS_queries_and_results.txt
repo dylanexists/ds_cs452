@@ -1,0 +1,138 @@
+SIMILAR_SEGMENTS_SQL = """
+SELECT p.title, s.id, s.content, s.start_time, s.end_time,
+       s.embedding <-> source.embedding AS distance
+FROM segment AS s
+JOIN podcast AS p ON p.id = s.podcast_id
+CROSS JOIN (SELECT embedding FROM segment WHERE id = %s) AS source
+WHERE s.id <> %s
+ORDER BY distance ASC, s.id ASC
+LIMIT %s;
+"""
+
+DISTANT_SEGMENTS_SQL = """
+SELECT p.title, s.id, s.content, s.start_time, s.end_time,
+       s.embedding <-> source.embedding AS distance
+FROM segment AS s
+JOIN podcast AS p ON p.id = s.podcast_id
+CROSS JOIN (SELECT embedding FROM segment WHERE id = %s) AS source
+WHERE s.id <> %s
+ORDER BY distance DESC, s.id ASC
+LIMIT %s;
+"""
+
+SIMILAR_EPISODES_TO_SEGMENT_SQL = """
+WITH episode_embeddings AS (
+    SELECT podcast_id, AVG(embedding) AS embedding
+    FROM segment
+    GROUP BY podcast_id
+), source AS (
+    SELECT podcast_id, embedding
+    FROM segment
+    WHERE id = %s
+)
+SELECT p.title,
+       episode_embeddings.embedding <-> source.embedding AS distance
+FROM episode_embeddings
+JOIN podcast AS p ON p.id = episode_embeddings.podcast_id
+CROSS JOIN source
+WHERE episode_embeddings.podcast_id <> source.podcast_id
+ORDER BY distance ASC, p.id ASC
+LIMIT %s;
+"""
+
+SIMILAR_EPISODES_SQL = """
+WITH episode_embeddings AS (
+    SELECT podcast_id, AVG(embedding) AS embedding
+    FROM segment
+    GROUP BY podcast_id
+), source AS (
+    SELECT embedding
+    FROM episode_embeddings
+    WHERE podcast_id = %s
+)
+SELECT p.title,
+       episode_embeddings.embedding <-> source.embedding AS distance
+FROM episode_embeddings
+JOIN podcast AS p ON p.id = episode_embeddings.podcast_id
+CROSS JOIN source
+WHERE episode_embeddings.podcast_id <> %s
+ORDER BY distance ASC, p.id ASC
+LIMIT %s;
+"""
+
+
+Question 1: five most similar segments to 267:476
+  title='Podcast: Ryan Graves: UFOs, Fighter Jets, and Aliens | Lex Fridman Podcast #308' | segment=113:2792 | start=6725.62 | stop=6729.86 | distance=0.648345
+     encounters, human beings, if we were to meet another alien
+  title='Podcast: Richard Dawkins: Evolution, Intelligence, Simulation, and Memes | Lex Fridman Podcast #87' | segment=268:1019 | start=2900.04 | stop=2903.0800000000004 | distance=0.655811
+     Suppose we did meet an alien from outer space
+  title='Podcast: Jeffrey Shainline: Neuromorphic Computing and Optoelectronic Intelligence | Lex Fridman Podcast #225' | segment=305:3600 | start=9479.960000000001 | stop=9484.04 | distance=0.659543
+     but if we think of alien civilizations out there
+  title='Podcast: Michio Kaku: Future of Humans, Aliens, Space Travel & Physics | Lex Fridman Podcast #45' | segment=18:464 | start=1316.8600000000001 | stop=1319.5800000000002 | distance=0.666203
+     So I think when we meet alien life from outer space,
+  title='Podcast: Alien Debate: Sara Walker and Lee Cronin | Lex Fridman Podcast #279' | segment=71:989 | start=2342.34 | stop=2343.6200000000003 | distance=0.674294
+     because if aliens come to us
+
+Question 2: five most dissimilar segments to 267:476
+  title='Podcast: Jason Calacanis: Startups, Angel Investing, Capitalism, and Friendship | Lex Fridman Podcast #161' | segment=119:218 | start=519.96 | stop=523.8000000000001 | distance=1.615769
+     a 73 Mustang Grande in gold?
+  title='Podcast: Rana el Kaliouby: Emotion AI, Social Robots, and Self-Driving Cars | Lex Fridman Podcast #322' | segment=133:2006 | start=5818.62 | stop=5820.82 | distance=1.586336
+     for 94 car models.
+  title='Podcast: Travis Stevens: Judo, Olympics, and Mental Toughness | Lex Fridman Podcast #223' | segment=283:1488 | start=3709.34 | stop=3711.1000000000004 | distance=1.572553
+     when I called down to get the sauna.
+  title='Podcast: Jeremy Howard: fast.ai Deep Learning Courses and Research | Lex Fridman Podcast #35' | segment=241:1436 | start=4068.9 | stop=4071.1400000000003 | distance=1.566332
+     which has all the courses pre-installed.
+  title='Podcast: Joscha Bach: Nature of Reality, Dreams, and Consciousness | Lex Fridman Podcast #212' | segment=307:3933 | start=10648.64 | stop=10650.960000000001 | distance=1.561634
+     and very few are first class and some are budget.
+
+Question 3: five most similar segments to 48:511
+  title='Podcast: Andrew Huberman: Neuroscience of Optimal Performance | Lex Fridman Podcast #139' | segment=155:648 | start=3798.48 | stop=3805.84 | distance=0.652300
+     Is there something interesting to you or fundamental to you about the circuitry of the brain
+  title='Podcast: Cal Newport: Deep Work, Focus, Productivity, Email, and Social Media | Lex Fridman Podcast #166' | segment=61:3707 | start=8498.02 | stop=8500.1 | distance=0.712105
+     of what we might discover about neural networks?
+  title='Podcast: Matt Botvinick: Neuroscience, Psychology, and AI at DeepMind | Lex Fridman Podcast #106' | segment=48:512 | start=1846.84 | stop=1865.84 | distance=0.719560
+     And our brain is there. There's some there's quite a few differences. Are some of them to you either interesting or perhaps profound in terms of in terms of the gap we might want to try to close in trying to create a human level intelligence.
+  title='Podcast: Yann LeCun: Dark Matter of Intelligence and Self-Supervised Learning | Lex Fridman Podcast #258' | segment=276:2642 | start=8628.16 | stop=8646.16 | distance=0.735722
+     Have these, I mean, small pockets of beautiful complexity. Does that, do cellular automata, do these kinds of emergence and complex systems give you some intuition or guide your understanding of machine learning systems and neural networks and so on?
+  title='Podcast: Stephen Wolfram: Fundamental Theory of Physics, Life, and the Universe | Lex Fridman Podcast #124' | segment=2:152 | start=610.86 | stop=618.86 | distance=0.736697
+     So is there something like that with physics where so deep learning neural networks have been around for a long time?
+
+Question 4: five most similar segments to 51:56
+  title='Podcast: George Hotz: Hacking the Simulation & Learning to Drive with Neural Nets | Lex Fridman Podcast #132' | segment=308:144 | start=500.44 | stop=502.6 | distance=0.668197
+     I mean, we don't understand dark energy, right?
+  title='Podcast: Lex Fridman: Ask Me Anything - AMA January 2021 | Lex Fridman Podcast' | segment=243:273 | start=946.22 | stop=950.12 | distance=0.735551
+     Like, what's up with this dark matter and dark energy stuff?
+  title='Podcast: Katherine de Kleer: Planets, Moons, Asteroids & Life in Our Solar System | Lex Fridman Podcast #184' | segment=196:685 | start=2591.72 | stop=2595.9599999999996 | distance=0.763114
+     being like, what the hell is dark matter and dark energy?
+  title='Podcast: Alex Filippenko: Supernovae, Dark Energy, Aliens & the Expanding Universe | Lex Fridman Podcast #137' | segment=51:36 | start=216.0 | stop=219.0 | distance=0.792202
+     Do we have any understanding of what the heck that thing is?
+  title='Podcast: Leonard Susskind: Quantum Mechanics, String Theory and Black Holes | Lex Fridman Podcast #41' | segment=122:831 | start=2374.9 | stop=2377.6200000000003 | distance=0.802270
+     That is a big question in physics right now.
+
+Question 5: five episodes most similar to segment 267:476
+  title='Podcast: Sara Walker: The Origin of Life on Earth and Alien Worlds | Lex Fridman Podcast #198' | distance=0.782898
+  title='Podcast: Martin Rees: Black Holes, Alien Life, Dark Matter, and the Big Bang | Lex Fridman Podcast #305' | distance=0.787950
+  title='Podcast: Max Tegmark: Life 3.0 | Lex Fridman Podcast #1' | distance=0.788690
+  title='Podcast: Sean Carroll: The Nature of the Universe, Life, and Intelligence | Lex Fridman Podcast #26' | distance=0.789065
+  title='Podcast: Nick Bostrom: Simulation and Superintelligence | Lex Fridman Podcast #83' | distance=0.791121
+
+Question 5: five episodes most similar to segment 48:511
+  title='Podcast: Christof Koch: Consciousness | Lex Fridman Podcast #2' | distance=0.753780
+  title='Podcast: Dileep George: Brain-Inspired AI | Lex Fridman Podcast #115' | distance=0.760515
+  title='Podcast: Tomaso Poggio: Brains, Minds, and Machines | Lex Fridman Podcast #13' | distance=0.761555
+  title='Podcast: Elon Musk: Neuralink, AI, Autopilot, and the Pale Blue Dot | Lex Fridman Podcast #49' | distance=0.776152
+  title='Podcast: Philip Goff: Consciousness, Panpsychism, and the Philosophy of Mind | Lex Fridman Podcast #261' | distance=0.787206
+
+Question 5: five episodes most similar to segment 51:56
+  title='Podcast: Sean Carroll: Quantum Mechanics and the Many-Worlds Interpretation | Lex Fridman Podcast #47' | distance=0.776714
+  title='Podcast: Stephen Wolfram: Fundamental Theory of Physics, Life, and the Universe | Lex Fridman Podcast #124' | distance=0.808071
+  title='Podcast: Donald Hoffman: Reality is an Illusion - How Evolution Hid the Truth | Lex Fridman Podcast #293' | distance=0.816583
+  title='Podcast: Cumrun Vafa: String Theory | Lex Fridman Podcast #204' | distance=0.817347
+  title='Podcast: Avi Loeb: Aliens, Black Holes, and the Mystery of the Oumuamua | Lex Fridman Podcast #154' | distance=0.825452
+
+Question 6: five episodes most similar to episode VeH7qKZr0WI
+  title='Podcast: Tyler Cowen: Economic Growth & the Fight Against Conformity & Mediocrity | Lex Fridman Podcast #174' | distance=0.119501
+  title='Podcast: Eric Weinstein: Difficult Conversations, Freedom of Speech, and Physics | Lex Fridman Podcast #163' | distance=0.125714
+  title='Podcast: Michael Malice and Yaron Brook: Ayn Rand, Human Nature, and Anarchy | Lex Fridman Podcast #178' | distance=0.128427
+  title='Podcast: Steve Keen: Marxism, Capitalism, and Economics | Lex Fridman Podcast #303' | distance=0.129163
+  title='Podcast: Michael Malice: The White Pill, Freedom, Hope, and Happiness Amidst Chaos | Lex Fridman Podcast #150' | distance=0.130409
